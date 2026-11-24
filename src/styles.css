@@ -1,0 +1,105 @@
+/* Global styling for application and Syncfusion PDF Viewer */
+@import '../node_modules/@syncfusion/ej2-bootstrap5-theme/styles/pdfviewer/index-lite.css';
+
+.e-dialog.e-pv-signature-dialog-height {
+  height: auto !important;
+}
+
+:root {
+  --primary-color: #0d6efd;
+  --primary-hover: #0b5ed7;
+  --success-color: #198754;
+  --warning-color: #fd7e14;
+  --danger-color: #dc3545;
+  --surface-bg: #f8fafc;
+  --card-bg: #ffffff;
+  --border-color: #e2e8f0;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: var(--font-family);
+  background-color: var(--surface-bg);
+  color: var(--text-main);
+}
+
+/* Custom highlighted signature field style */
+.e-pdfviewer-signatureformfields.target-field-highlight,
+.target-field-highlight {
+  outline: 3px solid #ff9800 !important;
+  box-shadow: 0 0 14px rgba(255, 152, 0, 0.75) !important;
+  transition: all 0.25s ease-in-out !important;
+  animation: pulse-field 1.4s infinite alternate !important;
+}
+
+@keyframes pulse-field {
+  from {
+    outline-color: #ff9800;
+    box-shadow: 0 0 8px rgba(255, 152, 0, 0.5);
+  }
+  to {
+    outline-color: #e65100;
+    box-shadow: 0 0 16px rgba(230, 81, 0, 0.85);
+  }
+}
+
+/* Custom styles for injected signature dialog elements */
+.custom-dialog-extension {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.custom-dialog-disclaimer {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.45;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.custom-dialog-disclaimer strong {
+  color: #0f172a;
+}
+
+.custom-dialog-signer-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.custom-dialog-signer-box label {
+  font-weight: 600;
+  color: #334155;
+  min-width: 90px;
+}
+
+.custom-dialog-signer-box input {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+  background: #ffffff;
+}
+
+.custom-dialog-signer-box input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
