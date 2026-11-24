@@ -1,0 +1,237 @@
+<div class="app-container">
+  <!-- Top Navigation & Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">✓</div>
+      <div>
+        <h1 class="brand-title">Syncfusion PDF Document Review & Signing POC</h1>
+        <p class="brand-subtitle">Enterprise E-Signature Workflow with Viewport Awareness & Scroll Verification</p>
+      </div>
+    </div>
+    <div class="signer-badge">
+      <span class="signer-label">Authenticated Signer:</span>
+      <span class="signer-name">{{ currentSigner.name }} ({{ currentSigner.title }})</span>
+    </div>
+  </header>
+
+  <!-- Workflow Banner & Action Controls -->
+  <section class="control-banner">
+    <!-- Requirement 1: Scroll-to-Read Verification State -->
+    <div class="verification-status">
+      <div class="progress-track">
+        <div class="progress-bar-bg">
+          <div 
+            class="progress-bar-fill" 
+            [class.complete]="isDocumentFullyReviewed"
+            [style.width.%]="reviewProgressPercentage">
+          </div>
+        </div>
+        <div class="progress-meta">
+          <span>Reviewed: {{ viewedPages.size }} of {{ totalPages }} pages</span>
+          <span>{{ reviewProgressPercentage }}%</span>
+        </div>
+      </div>
+
+      <div class="status-badge" [class.verified]="isDocumentFullyReviewed" [class.pending]="!isDocumentFullyReviewed">
+        <span class="status-icon">{{ isDocumentFullyReviewed ? '✅' : '⏳' }}</span>
+        <span>{{ isDocumentFullyReviewed ? 'Document Review Complete' : 'Review in Progress: Scroll All Pages' }}</span>
+      </div>
+    </div>
+
+    <!-- Requirements 1, 4: Action Buttons (Sign & Sign Current Field) -->
+    <div class="actions-group">
+      <!-- Requirement 4: Viewport-Based Signature Placement Button -->
+      <button 
+        type="button" 
+        class="btn btn-primary"
+        [disabled]="!isDocumentFullyReviewed"
+        (click)="signCurrentField()"
+        title="Automatically detect visible signature fields and sign the nearest to viewport center">
+        <span>🎯 Sign Current Field</span>
+      </button>
+
+      <!-- Requirement 1: Primary Sign Button (gated by Scroll-to-Read requirement) -->
+      <button 
+        type="button" 
+        class="btn btn-success"
+        [disabled]="!isDocumentFullyReviewed"
+        (click)="openGeneralSignDialog()"
+        title="Open Signature dialog to place signature on the document">
+        <span>✍️ Sign Document</span>
+      </button>
+
+      <!-- Document Page Navigation quick helpers -->
+      <button 
+        type="button" 
+        class="btn btn-secondary"
+        (click)="navigateToNextUnreadPage()"
+        [disabled]="isDocumentFullyReviewed"
+        title="Navigate to the next unread page">
+        <span>⏩ Next Unread Page</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Informational banner required by Requirement 1 -->
+  @if (!isDocumentFullyReviewed) {
+    <div class="notice-bar warning">
+      <span>⚠️</span>
+      <strong>Document Review Required:</strong>
+      <span>You must view or scroll through all {{ totalPages }} pages before signing is permitted. Unreviewed pages: {{ unreviewedPagesList }}.</span>
+    </div>
+  } @else {
+    <div class="notice-bar success">
+      <span>✅</span>
+      <strong>Ready to Sign:</strong>
+      <span>All pages have been reviewed. Click "Sign Current Field" to sign the visible field or click on any signature block in the document.</span>
+    </div>
+  }
+
+  <!-- Main Viewer & Inspection Sidebar Layout -->
+  <main class="main-layout">
+    <!-- PDF Viewer Workspace -->
+    <div class="viewer-section">
+      <ejs-pdfviewer
+        #pdfviewer
+        id="pdfViewer"
+        [documentPath]="documentPath"
+        [resourceUrl]="resourcesUrl"
+        [enableToolbar]="true"
+        [enableNavigationToolbar]="true"
+        [enableAnnotationToolbar]="true"
+        [enableFormFields]="true"
+        [enableFormDesigner]="true"
+        [serviceUrl]="''"
+        (documentLoad)="onDocumentLoaded($event)"
+        (pageChange)="onPageChange($event)"
+        (addSignature)="onSignatureAdded($event)"
+        (formFieldClick)="onFormFieldClick($event)"
+        style="height: 100%; width: 100%; display: block">
+      </ejs-pdfviewer>
+    </div>
+
+    <!-- Real-time Audit, Inspector & Technical Details Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-tabs">
+        <button 
+          type="button" 
+          class="sidebar-tab" 
+          [class.active]="activeTab === 'audit'" 
+          (click)="activeTab = 'audit'">
+          Audit Trail ({{ auditLogs.length }})
+        </button>
+        <button 
+          type="button" 
+          class="sidebar-tab" 
+          [class.active]="activeTab === 'fields'" 
+          (click)="activeTab = 'fields'">
+          Visible Fields ({{ signatureFieldStatus.length }})
+        </button>
+        <button 
+          type="button" 
+          class="sidebar-tab" 
+          [class.active]="activeTab === 'architecture'" 
+          (click)="activeTab = 'architecture'">
+          Tech Spec
+        </button>
+      </div>
+
+      <!-- Tab 1: Live Audit Log (Requirement 2 dialog monitoring) -->
+      @if (activeTab === 'audit') {
+        <div class="sidebar-content">
+          <div class="log-header">
+            <span class="log-title">Signing & Dialog Events</span>
+            <button type="button" class="btn-clear" (click)="auditLogs = []">Clear</button>
+          </div>
+          <div class="log-list">
+            @for (log of auditLogs; track log.id) {
+              <div class="log-item" [ngClass]="log.cssClass">
+                <div class="log-time">{{ log.timestamp | date:'HH:mm:ss.SSS' }}</div>
+                <div class="log-msg">{{ log.action }}</div>
+                <div class="log-detail">{{ log.details }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Tab 2: Signature Fields Status & Viewport Center Distance (Requirement 4) -->
+      @if (activeTab === 'fields') {
+        <div class="sidebar-content">
+          <div class="log-header">
+            <span class="log-title">Viewport Analysis</span>
+            <button type="button" class="btn-clear" (click)="scanViewportFields()">Refresh Viewport</button>
+          </div>
+
+          <p style="font-size: 11px; color: #64748b; margin-top: 0;">
+            The system measures DOM element client rects relative to the PDF viewer container viewport center.
+          </p>
+
+          @for (f of signatureFieldStatus; track f.name) {
+            <div class="field-card" [class.in-viewport]="f.isVisible" [class.nearest]="f.isNearest">
+              <div class="field-header">
+                <span class="field-name">{{ f.name }}</span>
+                <span class="field-pill" [ngClass]="f.isSigned ? 'signed' : (f.isVisible ? 'visible' : 'unsigned')">
+                  {{ f.isSigned ? 'Signed' : (f.isVisible ? (f.isNearest ? 'Nearest Target' : 'In Viewport') : 'Offscreen') }}
+                </span>
+              </div>
+              <div class="field-details">
+                <span>Page: {{ f.pageIndex + 1 }} | Type: {{ f.type }}</span>
+                @if (f.isVisible) {
+                  <span>Viewport Center Distance: <strong>{{ f.distanceFromCenter | number:'1.0-0' }}px</strong></span>
+                } @else {
+                  <span>Field currently outside visible scroll viewport</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- Tab 3: Native vs Custom Architecture Documentation -->
+      @if (activeTab === 'architecture') {
+        <div class="sidebar-content">
+          <div class="spec-box">
+            <div class="spec-title">
+              <span>Scroll-to-Read Verification</span>
+              <span class="spec-badge badge-custom">Application Level</span>
+            </div>
+            <div class="spec-desc">
+              Syncfusion natively fires <code>pageChange</code> and exposes <code>currentPageNumber</code>/<code>pageCount</code>, but enforcing read-to-completion and gating signing actions requires custom state tracking and button enabling logic.
+            </div>
+          </div>
+
+          <div class="spec-box">
+            <div class="spec-title">
+              <span>Dialog Monitoring & Custom Logic</span>
+              <span class="spec-badge badge-custom">Syncfusion Dialog Hooks</span>
+            </div>
+            <div class="spec-desc">
+              The PDF Viewer natively triggers <code>addSignature</code> when a signature is applied. For dialog canceling and confirmation, the component attaches EJ2 <code>EventHandler</code> click listeners directly to the Create and Cancel buttons on the internal EJ2 <code>Dialog</code> instance in <code>viewerBase.signatureModule</code>, executing button click business logic and audit events cleanly without dialog lifecycle event dependencies or DOM MutationObservers.
+            </div>
+          </div>
+
+          <div class="spec-box">
+            <div class="spec-title">
+              <span>Dialog Customization (Disclaimer & Prefill)</span>
+              <span class="spec-badge badge-custom">EJ2 Component Instances</span>
+            </div>
+            <div class="spec-desc">
+              <code>signatureDialogSettings.displayMode</code> is natively supported. Injecting legal disclaimers is rendered using the Syncfusion <code>Message</code> component (<code>@syncfusion/ej2-notifications</code>) and signer metadata via Syncfusion <code>TextBox</code> (<code>@syncfusion/ej2-inputs</code>). The typed signature input is pre-filled and synchronized via its underlying EJ2 <code>TextBox</code> component instance.
+            </div>
+          </div>
+
+          <div class="spec-box">
+            <div class="spec-title">
+              <span>Viewport-Based Signature Placement</span>
+              <span class="spec-badge badge-custom">Algorithmic Placement</span>
+            </div>
+            <div class="spec-desc">
+              Combines <code>retrieveFormFields()</code> / form field collections with DOM bounding rectangles against <code>viewerContainer</code> viewport coordinates, selects the min Euclidean distance to viewport center, highlights the field, and signs programmatically.
+            </div>
+          </div>
+        </div>
+      }
+    </aside>
+  </main>
+</div>
