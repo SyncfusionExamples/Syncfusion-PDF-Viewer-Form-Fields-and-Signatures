@@ -2,7 +2,7 @@
 
 ## Overview
 
-This Angular sample demonstrates a complete PDF form validation and signing workflow using Syncfusion PDF Viewer (`@syncfusion/ej2-angular-pdfviewer`) without a server component.
+This Angular sample demonstrates a PDF signing and document review workflow with signature UI customization using the Syncfusion PDF Viewer.
 
 ### Environment
 
